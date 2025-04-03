@@ -13,6 +13,7 @@ Authors:
 #include <avr/io.h>
 #include <avr/interrupt.h>
 
+#include <Adafruit_LSM6DS3TRC.h>
 #include <Pinouts.h>
 #include <TimingOffsets.h>
 #include <SensorGPS.h>
@@ -28,6 +29,7 @@ Authors:
 #include <DepthControl.h>
 #define UartSerial Serial1
 #include <GPSLockLED.h>
+#include <OtherIMU.h>
 
 /////////////////////////* Global Variables *////////////////////////
 
@@ -44,16 +46,19 @@ SensorIMU imu;
 Logger logger;
 Printer printer;
 GPSLockLED led;
+OtherIMU otherIMU_1;
+//OtherIMU otherIMU_2;
 
 // loop start recorder
 int loopStartTime;
 int currentTime;
 volatile bool EF_States[NUM_FLAGS] = {1,1,1};
+int i;
 
 ////////////////////////* Setup *////////////////////////////////
 
 void setup() {
-  
+  i = 0;
   logger.include(&imu);
   logger.include(&gps);
   logger.include(&xy_state_estimator);
@@ -63,12 +68,17 @@ void setup() {
   logger.include(&adc);
   logger.include(&ef);
   logger.include(&button_sampler);
+  logger.include(&otherIMU_1);
+  //logger.include(&otherIMU_2);
   logger.init();
+
 
   printer.init();
   ef.init();
   button_sampler.init();
   imu.init();
+  otherIMU_1.init();
+  //otherIMU_2.init();
   UartSerial.begin(9600);
   gps.init(&GPS);
   motor_driver.init();
@@ -94,7 +104,8 @@ void setup() {
   z_state_estimator.lastExecutionTime  = loopStartTime - LOOP_PERIOD + Z_STATE_ESTIMATOR_LOOP_OFFSET;
   depth_control.lastExecutionTime      = loopStartTime - LOOP_PERIOD + DEPTH_CONTROL_LOOP_OFFSET;
   logger.lastExecutionTime             = loopStartTime - LOOP_PERIOD + LOGGER_LOOP_OFFSET;
-
+  otherIMU_1.lastExecutionTime         = loopStartTime - LOOP_PERIOD + IMU_LOOP_OFFSET;
+  //otherIMU_2.lastExecutionTime         = loopStartTime - LOOP_PERIOD + IMU_LOOP_OFFSET;
 }
 
 
@@ -105,6 +116,8 @@ void loop() {
   currentTime=millis();
     
   if ( currentTime-printer.lastExecutionTime > LOOP_PERIOD ) {
+    i++;
+    Serial.println(i);
     printer.lastExecutionTime = currentTime;
     printer.printValue(0,adc.printSample());
     printer.printValue(1,button_sampler.printState());// modified line
@@ -114,9 +127,13 @@ void loop() {
     printer.printValue(5,z_state_estimator.printState());  
     printer.printValue(6,depth_control.printWaypointUpdate());
     printer.printValue(7,depth_control.printString());
-    printer.printValue(8,motor_driver.printState());
+    printer.printValue(8, otherIMU_1.printAccels());
+    //printer.printValue(8,motor_driver.printState());
     printer.printValue(9,imu.printRollPitchHeading());        
     printer.printValue(10,imu.printAccels());
+    
+    //printer.printValue(12, otherIMU_2.printAccels());
+    //printer.printValue(11, calibrationMessage,20);
     printer.printToSerial();  // To stop printing, just comment this line out
   }
 
@@ -174,7 +191,16 @@ void loop() {
     imu.lastExecutionTime = currentTime;
     imu.read();     // blocking I2C calls
   }
- 
+
+  if (currentTime - otherIMU_1.lastExecutionTime > LOOP_PERIOD) {
+    otherIMU_1.lastExecutionTime = currentTime;
+    otherIMU_1.read();
+  }
+
+  // if (currentTime - otherIMU_2.lastExecutionTime > LOOP_PERIOD) {
+  //   otherIMU_2.lastExecutionTime = currentTime;
+  //   otherIMU_2.read();
+  // }
   gps.read(&GPS); // blocking UART calls, need to check for UART data every cycle
 
   if ( currentTime-xy_state_estimator.lastExecutionTime > LOOP_PERIOD ) {

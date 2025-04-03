@@ -4,9 +4,9 @@
 clear;
 %clf;
 
-filenum = '003'; % file number for the data you want to read
-infofile = strcat('INF', filenum, '.TXT');
-datafile = strcat('LOG', filenum, '.BIN');
+filenum = '039'; % file number for the data you want to read
+infofile = strcat('inf', filenum, '.txt');
+datafile = strcat('log', filenum, '.bin');
 
 %% map from datatype to length in bytes
 dataSizes.('float') = 4;
@@ -46,6 +46,66 @@ end
 fclose(fid);
 
 %% Process your data here
-
-
-
+% accelX = accelX .* 0.00980665;
+% accelY = accelY .* 0.00980665;
+% accelZ = accelZ .* 0.00980665;
+% v0 = 0;
+% x0 = 0;
+% time = 1:length(accelX);
+% dt = 0.1;
+% time = time .* dt;
+% sigma_a = 0.8825985;
+% 
+% velX = v0 + cumtrapz(time, accelX);
+% velY = v0 + cumtrapz(time, accelY);
+% velZ = v0 + cumtrapz(time, accelZ);
+% 
+% posX = x0 + cumtrapz(time, velX);
+% posY = x0 + cumtrapz(time, velY);
+% posZ = x0 + cumtrapz(time, velZ);
+% 
+% N = length(time);
+% sigmaV = zeros(N,1);  % std dev of velocity at each time step
+% sigmaP = zeros(N,1);  % std dev of position at each time step
+% 
+% % Assume at k=1 (the first sample) there's effectively no prior motion or uncertainty
+% sigmaV(1) = 0;
+% sigmaP(1) = 0;
+% 
+% % --- Step 3: Propagate uncertainties in a loop
+% for k = 2:N
+%     dt = time(k) - time(k-1);
+% 
+%     % Update velocity uncertainty
+%     %   sigmaV(k)^2 = sigmaV(k-1)^2 + (dt^2)*sigma_a^2
+%     sigmaV(k) = sqrt( sigmaV(k-1)^2 + (dt^2)*sigma_a^2 );
+% 
+%     % Update position uncertainty
+%     %   sigmaP(k)^2 = sigmaP(k-1)^2 + (dt^2)*[sigmaV(k)^2]
+%     sigmaP(k) = sqrt( sigmaP(k-1)^2 + (dt^2)*sigmaV(k)^2 );
+% end
+% 
+% % --- Step 4: Create upper and lower 2-sigma bounds for plotting
+% upperBound = posY + 2*sigmaP;   % +2 sigma
+% lowerBound = posY - 2*sigmaP;   % -2 sigma
+% 
+% 
+% figure(1);
+% plot(posX, posY);
+% 
+% xlabel('X Position, meters');
+% ylabel('Y Position, meters');
+% title('X Position vs Y Position');
+% 
+% figure(2);
+% hold on
+% plot(time, posY, 'DisplayName','Position [m]');
+% plot(time, upperBound, 'r--');
+% plot(time, lowerBound, 'r--');
+% xlabel('Time, seconds');
+% ylabel('Y Position, meters');
+% title('Y Position vs Time');
+% legend('Y Position','Upper 95% Uncertainty Bound', 'Lower 95% Uncertainty Bound');
+% 
+% 
+% hold off
