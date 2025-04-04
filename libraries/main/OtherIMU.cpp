@@ -1,13 +1,30 @@
 #include "OtherIMU.h"
 #include "Printer.h"
 #include <math.h>
+#include <sstream>
 extern Printer printer;
 
-OtherIMU::OtherIMU(void)
-    : DataSource("rollIMU_1,pitchIMU_1,headingIMU_1,accelX_1,accelY_1,accelZ_1,gyroX_1,gyroY_1,gyroZ_1",
-                    "float,float,float,float,float,float,float,float,float") {
-
+// Helper function to fill in the label string
+static const char* formatLabels(char* dest, size_t size, int deviceID) {
+    snprintf(dest, size,
+             "rollIMU_%d,pitchIMU_%d,headingIMU_%d,"
+             "accelX_%d,accelY_%d,accelZ_%d,"
+             "gyroX_%d,gyroY_%d,gyroZ_%d",
+             deviceID, deviceID, deviceID,
+             deviceID, deviceID, deviceID,
+             deviceID, deviceID, deviceID);
+    return dest;
 }
+
+OtherIMU::OtherIMU(int deviceID)
+    : DataSource(formatLabels(varNames_, sizeof(varNames_), deviceID),
+                 "float,float,float,float,float,float,float,float,float"),
+                 deviceID_(deviceID),
+                 varNames_{} {
+    // Constructor body if needed
+}
+
+
 
 void OtherIMU::init(void) {
     Serial.print("Initializing other IMU... ");
@@ -93,6 +110,8 @@ String OtherIMU::printAccels(void) {
     return printString;
 }
 
+
+
 size_t OtherIMU::writeDataBytes(unsigned char * buffer, size_t idx) {
     float * data_slot = (float *) &buffer[idx];
     data_slot[0] = state.roll;
@@ -113,15 +132,10 @@ void OtherIMU::getOrientation(float& q0, float& q1, float& q2, float& q3,
     float gx, float gy, float gz,
     float beta) {
     float const PI_F = 3.14159265F;
-    lsm6ds_data_rate_t accel_data_rate = myIMU.IMU->getAccelDataRate();
-    lsm6ds_data_rate_t gyro_data_rate = myIMU.IMU->getGyroDataRate();
-    if (accel_data_rate != gyro_data_rate) {
-        Serial.println("Data rates are not the same!");
-    }
-    float samplefreq = getSampleRate(accel_data_rate);
-    float dt = 1.0f / samplefreq;
+    float const samplefreq = 10.1F; // sample frequency is 10.1 Hz
+    float const dt = 1.0f / samplefreq;
     // Copied from Adafruit_AHRS_Madgwick
-    // Convert gyro to radians/sec
+    // Convert gyro from deg/s to radians/sec
     gx *= 0.0174533f;
     gy *= 0.0174533f;
     gz *= 0.0174533f;
@@ -182,20 +196,3 @@ void OtherIMU::getOrientation(float& q0, float& q1, float& q2, float& q3,
     state.pitch = pitch * 180.0/PI_F;
     state.heading = yaw * 180.0/PI_F; // heading
 }
-
-
-float OtherIMU::getSampleRate(lsm6ds_data_rate_t rate) {
-    switch (rate) {
-      case LSM6DS_RATE_12_5_HZ:   return 12.5f;
-      case LSM6DS_RATE_26_HZ:     return 26.0f;
-      case LSM6DS_RATE_52_HZ:     return 52.0f;
-      case LSM6DS_RATE_104_HZ:    return 104.0f;
-      case LSM6DS_RATE_208_HZ:    return 208.0f;
-      case LSM6DS_RATE_416_HZ:    return 416.0f;
-      case LSM6DS_RATE_833_HZ:    return 833.0f;
-      case LSM6DS_RATE_1_66K_HZ:  return 1660.0f;
-      case LSM6DS_RATE_3_33K_HZ:  return 3330.0f;
-      case LSM6DS_RATE_6_66K_HZ:  return 6660.0f;
-      default:                    return 0.0f; // Shutdown or unknown
-    }
-  }

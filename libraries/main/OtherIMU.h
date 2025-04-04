@@ -5,6 +5,7 @@
 #include <Wire.h>
 #include <Adafruit_LSM6DS3TRC.h>
 #include "DataSource.h"
+#include <sstream>
 
 typedef struct {
     float accelX; // m/s^2
@@ -29,7 +30,7 @@ typedef struct LSM6DS3TRC {
 
 class OtherIMU : public DataSource {
 public:
-    OtherIMU(void);
+    OtherIMU(int deviceID);
 
     // Starts the connection to the sensor
     void init(void);
@@ -37,13 +38,11 @@ public:
     // Reads data from the sensor
     void read(void);
 
-    // Functions for Madgwick orientation stuff
+    // Function for Madgwick orientation stuff
     void getOrientation(float& q0, float& q1, float& q2, float& q3,
         float ax, float ay, float az,
         float gx, float gy, float gz,
         float beta);
-
-    float getSampleRate(lsm6ds_data_rate_t rate);
 
     // Latest reported orientation data is stored here
     imu_state state; 
@@ -60,12 +59,13 @@ public:
 private:
     LSM6DS3TRC myIMU;
 
+    int deviceID_;
+    char varNames_[85];
     // Offsets applied to raw x/y/z accel values
     float accel_offsets[3] = { 1.0F, 1.0F, 1.0F };
 
     // Offsets applied to raw x/y/z gyro values
     float gyro_offsets[3] = { 1.00, 1.00, 1.00 };
-  
 };
 
 #endif

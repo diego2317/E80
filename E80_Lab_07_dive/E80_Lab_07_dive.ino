@@ -46,8 +46,8 @@ SensorIMU imu;
 Logger logger;
 Printer printer;
 GPSLockLED led;
-OtherIMU otherIMU_1;
-//OtherIMU otherIMU_2;
+OtherIMU otherIMU_1(1);
+OtherIMU otherIMU_2(2);
 
 // loop start recorder
 int loopStartTime;
@@ -69,7 +69,7 @@ void setup() {
   logger.include(&ef);
   logger.include(&button_sampler);
   logger.include(&otherIMU_1);
-  //logger.include(&otherIMU_2);
+  logger.include(&otherIMU_2);
   logger.init();
 
 
@@ -78,7 +78,7 @@ void setup() {
   button_sampler.init();
   imu.init();
   otherIMU_1.init();
-  //otherIMU_2.init();
+  otherIMU_2.init();
   UartSerial.begin(9600);
   gps.init(&GPS);
   motor_driver.init();
@@ -105,7 +105,7 @@ void setup() {
   depth_control.lastExecutionTime      = loopStartTime - LOOP_PERIOD + DEPTH_CONTROL_LOOP_OFFSET;
   logger.lastExecutionTime             = loopStartTime - LOOP_PERIOD + LOGGER_LOOP_OFFSET;
   otherIMU_1.lastExecutionTime         = loopStartTime - LOOP_PERIOD + IMU_LOOP_OFFSET;
-  //otherIMU_2.lastExecutionTime         = loopStartTime - LOOP_PERIOD + IMU_LOOP_OFFSET;
+  otherIMU_2.lastExecutionTime         = loopStartTime - LOOP_PERIOD + IMU_LOOP_OFFSET;
 }
 
 
@@ -120,19 +120,18 @@ void loop() {
     Serial.println(i);
     printer.lastExecutionTime = currentTime;
     printer.printValue(0,adc.printSample());
-    printer.printValue(1,button_sampler.printState());// modified line
-    printer.printValue(2,logger.printState()); 
-    printer.printValue(3,gps.printState());   
-    printer.printValue(4,xy_state_estimator.printState());  
-    printer.printValue(5,z_state_estimator.printState());  
-    printer.printValue(6,depth_control.printWaypointUpdate());
-    printer.printValue(7,depth_control.printString());
-    printer.printValue(8, otherIMU_1.printAccels());
+    //printer.printValue(1,button_sampler.printState());// modified line
+    printer.printValue(1,logger.printState()); 
+    printer.printValue(2,gps.printState());   
+    printer.printValue(3,xy_state_estimator.printState());  
+    printer.printValue(4,z_state_estimator.printState());  
+    printer.printValue(5,depth_control.printWaypointUpdate());
+    printer.printValue(6,depth_control.printString());
+    printer.printValue(7, otherIMU_1.printAccels());
+    printer.printValue(8, otherIMU_2.printAccels());
     //printer.printValue(8,motor_driver.printState());
     printer.printValue(9,imu.printRollPitchHeading());        
     printer.printValue(10,imu.printAccels());
-    
-    //printer.printValue(12, otherIMU_2.printAccels());
     //printer.printValue(11, calibrationMessage,20);
     printer.printToSerial();  // To stop printing, just comment this line out
   }
@@ -197,10 +196,10 @@ void loop() {
     otherIMU_1.read();
   }
 
-  // if (currentTime - otherIMU_2.lastExecutionTime > LOOP_PERIOD) {
-  //   otherIMU_2.lastExecutionTime = currentTime;
-  //   otherIMU_2.read();
-  // }
+  if (currentTime - otherIMU_2.lastExecutionTime > LOOP_PERIOD) {
+    otherIMU_2.lastExecutionTime = currentTime;
+    otherIMU_2.read();
+  }
   gps.read(&GPS); // blocking UART calls, need to check for UART data every cycle
 
   if ( currentTime-xy_state_estimator.lastExecutionTime > LOOP_PERIOD ) {
