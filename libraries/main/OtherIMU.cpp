@@ -4,38 +4,36 @@
 #include <sstream>
 extern Printer printer;
 
-// Helper function to fill in the label string
-static const char* formatLabels(char* dest, size_t size, int deviceID) {
-    snprintf(dest, size,
-             "rollIMU_%d,pitchIMU_%d,headingIMU_%d,"
-             "accelX_%d,accelY_%d,accelZ_%d,"
-             "gyroX_%d,gyroY_%d,gyroZ_%d",
-             deviceID, deviceID, deviceID,
-             deviceID, deviceID, deviceID,
-             deviceID, deviceID, deviceID);
-    return dest;
-}
+OtherIMU::OtherIMU()
+    : DataSource("rollIMU_1,pitchIMU_1,headingIMU_1,accelX_1,accelY_1,accelZ_1,gyroX_1,gyroY_1,gyroZ_1",
+        "float,float,float,float,float,float,float,float,float"){}
 
 OtherIMU::OtherIMU(int deviceID)
-    : DataSource(formatLabels(varNames_, sizeof(varNames_), deviceID),
-                 "float,float,float,float,float,float,float,float,float"),
-                 deviceID_(deviceID),
-                 varNames_{} {
-    // Constructor body if needed
-}
+    : DataSource("rollIMU_2,pitchIMU_2,headingIMU_2,accelX_2,accelY_2,accelZ_2,gyroX_2,gyroY_2,gyroZ_2",
+        "float,float,float,float,float,float,float,float,float") {}
 
 
 
-void OtherIMU::init(void) {
+void OtherIMU::init(int deviceID) {
     Serial.print("Initializing other IMU... ");
-
+    //myIMU.dev_i2c->begin();
     // create i2c interface
-    myIMU.dev_i2c->begin();
-
-    if (!myIMU.IMU->begin_I2C()) {
-        Serial.println("failed to initialize I2C");
+    //myIMU.i2c_dev.begin();
+    if (deviceID == 1) {
+        uint8_t address = 0b01101010;
+        myIMU.dev_i2c->begin();
+        if (!myIMU.IMU->begin_I2C(address, myIMU.dev_i2c, 1)) {
+            Serial.println("failed to initialize I2C on IMU 1");
+        }
+    } else {
+        uint8_t address = 0b01101011;
+        myIMU.dev_i2c->begin();
+        if (!myIMU.IMU->begin_I2C(address, myIMU.dev_i2c, 2)) {
+            Serial.println("failed to initialize I2C on IMU 2");
+        }
     }
 }
+
 
 void OtherIMU::read(void) {
     // Get new raw data

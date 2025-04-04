@@ -9,7 +9,8 @@
 #define LSM_MISO 12
 #define LSM_MOSI 11
 
-Adafruit_LSM6DS3TRC lsm6ds3trc;
+Adafruit_LSM6DS3TRC imu1;
+Adafruit_LSM6DS3TRC imu2;
 
 void setup(void) {
   Serial.begin(115200);
@@ -17,11 +18,18 @@ void setup(void) {
     delay(10); // will pause Zero, Leonardo, etc until serial console opens
 
   Serial.println("Adafruit LSM6DS3TR-C test!");
-
-  if (!lsm6ds3trc.begin_I2C()) {
+  TwoWire *dev_i2c = &Wire1;
+  if (!imu1.begin_I2C()) {
     // if (!lsm6ds3trc.begin_SPI(LSM_CS)) {
     // if (!lsm6ds3trc.begin_SPI(LSM_CS, LSM_SCK, LSM_MISO, LSM_MOSI)) {
-    Serial.println("Failed to find LSM6DS3TR-C chip");
+    Serial.println("Failed to find first imu");
+    while (1) {
+      delay(10);
+    }
+  }
+
+  if (!imu2.begin_I2C(0b01101011, dev_i2c,0)) {
+    Serial.println("Failed to find first imu");
     while (1) {
       delay(10);
     }

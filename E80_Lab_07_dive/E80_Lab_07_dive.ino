@@ -46,8 +46,8 @@ SensorIMU imu;
 Logger logger;
 Printer printer;
 GPSLockLED led;
-OtherIMU otherIMU_1(1);
-OtherIMU otherIMU_2(2);
+OtherIMU otherIMU_1;
+OtherIMU otherIMU_2 = OtherIMU(2);
 
 // loop start recorder
 int loopStartTime;
@@ -77,8 +77,8 @@ void setup() {
   ef.init();
   button_sampler.init();
   imu.init();
-  otherIMU_1.init();
-  otherIMU_2.init();
+  otherIMU_1.init(1);
+  otherIMU_2.init(2);
   UartSerial.begin(9600);
   gps.init(&GPS);
   motor_driver.init();
@@ -196,9 +196,9 @@ void loop() {
     otherIMU_1.read();
   }
 
-  if (currentTime - otherIMU_2.lastExecutionTime > LOOP_PERIOD) {
-    otherIMU_2.lastExecutionTime = currentTime;
-    otherIMU_2.read();
+  if (currentTime - otherIMU_2.lastExecutionTime > LOOP_PERIOD+30) {
+   otherIMU_2.lastExecutionTime = currentTime;
+   otherIMU_2.read();
   }
   gps.read(&GPS); // blocking UART calls, need to check for UART data every cycle
 

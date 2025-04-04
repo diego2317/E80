@@ -4,6 +4,7 @@
 #include <Arduino.h>
 #include <Wire.h>
 #include <Adafruit_LSM6DS3TRC.h>
+#include "Adafruit_I2CDevice.h"
 #include "DataSource.h"
 #include <sstream>
 
@@ -25,15 +26,18 @@ typedef struct {
 
 typedef struct LSM6DS3TRC {
     TwoWire *dev_i2c = &Wire1;
+    //uint8_t address = 0b01101010;
+    //Adafruit_I2CDevice i2c_dev = Adafruit_I2CDevice(address, dev_i2c);
     Adafruit_LSM6DS3TRC *IMU = new Adafruit_LSM6DS3TRC();
 } LSM6DS3TRC;
 
 class OtherIMU : public DataSource {
 public:
+    OtherIMU();
     OtherIMU(int deviceID);
 
     // Starts the connection to the sensor
-    void init(void);
+    void init(int deviceID);
 
     // Reads data from the sensor
     void read(void);
@@ -54,13 +58,13 @@ public:
     // from DataSource
     size_t writeDataBytes(unsigned char * buffer, size_t idx);
 
-    int lastExecutionTime = -1;
 
+    int getDeviceID();
+
+    int lastExecutionTime = -1;
+    
 private:
     LSM6DS3TRC myIMU;
-
-    int deviceID_;
-    char varNames_[85];
     // Offsets applied to raw x/y/z accel values
     float accel_offsets[3] = { 1.0F, 1.0F, 1.0F };
 
