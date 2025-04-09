@@ -59,17 +59,19 @@ int i;
 
 void setup() {
   i = 0;
-  logger.include(&imu);
-  logger.include(&gps);
+  logger.include(&otherIMU_2);
   logger.include(&xy_state_estimator);
+  logger.include(&otherIMU_1);
+  logger.include(&gps);
+  logger.include(&imu);
   logger.include(&z_state_estimator);
   logger.include(&depth_control);
   logger.include(&motor_driver);
   logger.include(&adc);
   logger.include(&ef);
+  
   logger.include(&button_sampler);
-  logger.include(&otherIMU_1);
-  logger.include(&otherIMU_2);
+  
   logger.init();
 
 

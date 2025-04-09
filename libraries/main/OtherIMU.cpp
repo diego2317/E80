@@ -58,9 +58,12 @@ void OtherIMU::read(void) {
     state.gyroY = gyro.gyro.y;
     state.gyroZ = gyro.gyro.z;
 
-    getOrientation(state.q0, state.q1, state.q2, state.q3, 
-        state.accelX, state.accelY, state.accelZ, 
-        state.gyroX, state.gyroY, state.gyroZ, 0.1f);
+    state.heading = gyro.gyro.x;
+    state.roll = gyro.gyro.y;
+    state.pitch = gyro.gyro.z;
+    // getOrientation(state.q0, state.q1, state.q2, state.q3, 
+    //     state.accelX, state.accelY, state.accelZ, 
+    //     state.gyroX, state.gyroY, state.gyroZ, 0.1f);
 }
 
 String OtherIMU::printRollPitchHeading(void) {
