@@ -46,66 +46,88 @@ end
 fclose(fid);
 
 %% Process your data here
-% accelX = accelX .* 0.00980665;
-% accelY = accelY .* 0.00980665;
-% accelZ = accelZ .* 0.00980665;
-% v0 = 0;
-% x0 = 0;
-% time = 1:length(accelX);
-% dt = 0.1;
-% time = time .* dt;
-% sigma_a = 0.8825985;
-% 
-% velX = v0 + cumtrapz(time, accelX);
-% velY = v0 + cumtrapz(time, accelY);
-% velZ = v0 + cumtrapz(time, accelZ);
-% 
-% posX = x0 + cumtrapz(time, velX);
-% posY = x0 + cumtrapz(time, velY);
-% posZ = x0 + cumtrapz(time, velZ);
-% 
-% N = length(time);
-% sigmaV = zeros(N,1);  % std dev of velocity at each time step
-% sigmaP = zeros(N,1);  % std dev of position at each time step
-% 
-% % Assume at k=1 (the first sample) there's effectively no prior motion or uncertainty
-% sigmaV(1) = 0;
-% sigmaP(1) = 0;
-% 
-% % --- Step 3: Propagate uncertainties in a loop
-% for k = 2:N
-%     dt = time(k) - time(k-1);
-% 
-%     % Update velocity uncertainty
-%     %   sigmaV(k)^2 = sigmaV(k-1)^2 + (dt^2)*sigma_a^2
-%     sigmaV(k) = sqrt( sigmaV(k-1)^2 + (dt^2)*sigma_a^2 );
-% 
-%     % Update position uncertainty
-%     %   sigmaP(k)^2 = sigmaP(k-1)^2 + (dt^2)*[sigmaV(k)^2]
-%     sigmaP(k) = sqrt( sigmaP(k-1)^2 + (dt^2)*sigmaV(k)^2 );
-% end
-% 
-% % --- Step 4: Create upper and lower 2-sigma bounds for plotting
-% upperBound = posY + 2*sigmaP;   % +2 sigma
-% lowerBound = posY - 2*sigmaP;   % -2 sigma
-% 
-% 
-% figure(1);
-% plot(posX, posY);
-% 
-% xlabel('X Position, meters');
-% ylabel('Y Position, meters');
-% title('X Position vs Y Position');
-% 
-% figure(2);
-% hold on
-% plot(time, posY, 'DisplayName','Position [m]');
-% plot(time, upperBound, 'r--');
-% plot(time, lowerBound, 'r--');
-% xlabel('Time, seconds');
-% ylabel('Y Position, meters');
-% title('Y Position vs Time');
-% legend('Y Position','Upper 95% Uncertainty Bound', 'Lower 95% Uncertainty Bound');
-% 
-% 
-% hold off
+
+% 1. Rotate all the data into the same reference frame
+combinedAccelX = [accelX, accelX_1, accelX_2];
+combinedAccelY = [accelY, accelY_1, accelY_2];
+combinedAccelZ = [accelZ, accelZ_1, accelZ_2];
+% 2. Fuse data using weighted averaging and outlier rejection
+w = [0.34,0.33,0.33];
+n = size(combinedAccelZ,1);
+
+function fused = fuse_with_outlier_rejection(A, w, thresh)
+% A:     n×3 matrix of acceleration data
+% w:     1×3 vector of weights (must sum to 1)
+% thresh: number of std devs for outlier rejection (e.g., 1)
+
+    if nargin < 3
+        thresh = 1; % default threshold
+    end
+
+    n = size(A,1);
+    fused = zeros(n,1);
+
+    for i = 1:n
+        row = A(i,:);
+        row_mean = mean(row);
+        row_std = std(row);
+
+        % Reject outliers based on threshold
+        inliers = abs(row - row_mean) < thresh * row_std;
+
+        if any(inliers)
+            valid_weights = w(inliers);
+            valid_weights = valid_weights / sum(valid_weights); % normalize
+            fused(i) = sum(row(inliers) .* valid_weights);
+        else
+            fused(i) = row_mean;  % fallback if all are outliers
+        end
+    end
+end
+
+fusedAccelX = fuse_with_outlier_rejection(combinedAccelX,w,1);
+fusedAccelY = fuse_with_outlier_rejection(combinedAccelY,w,1);
+fusedAccelZ = fuse_with_outlier_rejection(combinedAccelZ,w,1);
+
+
+% 3. Apply low-pass filter to fused data
+filteredAccelX = medfilt1(fusedAccelX,3);
+filteredAccelY = medfilt1(fusedAccelY,3);
+filteredAccelZ = medfilt1(fusedAccelZ,3);
+% 4. Analyze acceleration data. Compare raw data to fused and filtered data
+t = (0:n-1) / 10.1;  % time vector in seconds
+figure(1);
+clf
+hold on
+plot(t, fusedAccelZ, '-r', 'LineWidth',2);
+plot(t, accelZ, '-g', 'LineWidth', 2);
+plot(t, accelZ_1, '-b', 'LineWidth', 2);
+plot(t, accelZ_2, '-m', 'LineWidth', 2);
+legend('Fused Acceleration', 'Board Acceleration', 'IMU 1 Acceleration', 'IMU 2 Acceleration')
+xlabel("Time [s]");
+ylabel("Acceleration in Z Direction [m/s^2]");
+title("Plot of Raw and Fused Acceleration Data vs Time");
+
+figure(2);
+clf
+hold on
+plot(t, fusedAccelY, '-r', 'LineWidth',2);
+plot(t, accelY, '-g', 'LineWidth', 2);
+plot(t, accelY_1, '-b', 'LineWidth', 2);
+plot(t, accelY_2, '-m', 'LineWidth', 2);
+legend('Fused Acceleration', 'Board Acceleration', 'IMU 1 Acceleration', 'IMU 2 Acceleration')
+xlabel("Time [s]");
+ylabel("Acceleration in Y Direction[m/s^2]");
+title("Plot of Raw and Fused Acceleration Data vs Time");
+
+figure(3);
+clf
+hold on
+plot(t, fusedAccelX, '-r', 'LineWidth',2);
+plot(t, accelX, '-g', 'LineWidth', 2);
+plot(t, accelX_1, '-b', 'LineWidth', 2);
+plot(t, accelX_2, '-m', 'LineWidth', 2);
+legend('Fused Acceleration', 'Board Acceleration', 'IMU 1 Acceleration', 'IMU 2 Acceleration')
+xlabel("Time [s]");
+ylabel("Acceleration in X Direction[m/s^2]");
+title("Plot of Raw and Fused Acceleration Data vs Time");
