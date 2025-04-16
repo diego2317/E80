@@ -1,4 +1,4 @@
- % matlablogging
+% matlablogging
 % reads from Teensy data stream
 
 function teensyanalog=matlablogging(length)

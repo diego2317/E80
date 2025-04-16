@@ -2,9 +2,9 @@
 % Use this script to read data from your micro SD card
 
 clear;
-%clf;
+clf;
 
-filenum = '012'; % file number for the data you want to read
+filenum = '063'; % file number for the data you want to read
 infofile = strcat('inf', filenum, '.txt');
 datafile = strcat('log', filenum, '.bin');
 
@@ -46,13 +46,23 @@ end
 fclose(fid);
 
 %% Process your data here
+pressureData = A00;
+resistorData = A01;
+
+%% Acceleration stuff
+
+averageX = (accelX + accelX_1 + accelX_2) / 3;
+averageY = (accelY + accelY_1 + accelY_2) / 3;
+averageZ = (accelZ + accelZ_1 + accelZ_2) / 3;
+
 
 % 1. Rotate all the data into the same reference frame
 combinedAccelX = [accelX, accelX_1, accelX_2];
 combinedAccelY = [accelY, accelY_1, accelY_2];
 combinedAccelZ = [accelZ, accelZ_1, accelZ_2];
 % 2. Fuse data using weighted averaging and outlier rejection
-w = [0.34,0.33,0.33];
+w = [0.25,0.375,0.375];
+%weightedAccelX = 0.25 * accelX + 0.75 * specialIMUX;
 n = size(combinedAccelZ,1);
 
 function fused = fuse_with_outlier_rejection(A, w, thresh)
@@ -99,11 +109,13 @@ t = (0:n-1) / 10.1;  % time vector in seconds
 figure(1);
 clf
 hold on
-plot(t, fusedAccelZ, '-r', 'LineWidth',2);
-plot(t, accelZ, '-g', 'LineWidth', 2);
-plot(t, accelZ_1, '-b', 'LineWidth', 2);
-plot(t, accelZ_2, '-m', 'LineWidth', 2);
-legend('Fused Acceleration', 'Board Acceleration', 'IMU 1 Acceleration', 'IMU 2 Acceleration')
+plot(t, filteredAccelZ, '-r', 'LineWidth',3);
+plot(t, averageZ, '-g', 'LineWidth', 2);
+legend('Filtered Acceleration', 'Averaged Acceleration');
+% plot(t, accelZ, '-og', 'LineWidth', 1);
+% plot(t, accelZ_1, '-ob', 'LineWidth', 1);
+% plot(t, accelZ_2, '-om', 'LineWidth', 1);
+% legend('Fused Acceleration', 'Board Acceleration', 'IMU 1 Acceleration', 'IMU 2 Acceleration')
 xlabel("Time [s]");
 ylabel("Acceleration in Z Direction [m/s^2]");
 title("Plot of Raw and Fused Acceleration Data vs Time");
@@ -111,11 +123,13 @@ title("Plot of Raw and Fused Acceleration Data vs Time");
 figure(2);
 clf
 hold on
-plot(t, fusedAccelY, '-r', 'LineWidth',2);
-plot(t, accelY, '-g', 'LineWidth', 2);
-plot(t, accelY_1, '-b', 'LineWidth', 2);
-plot(t, accelY_2, '-m', 'LineWidth', 2);
-legend('Fused Acceleration', 'Board Acceleration', 'IMU 1 Acceleration', 'IMU 2 Acceleration')
+plot(t, filteredAccelY, '-r', 'LineWidth',2);
+plot(t, averageY, '-g', 'LineWidth', 2);
+legend('Filtered Acceleration', 'Averaged Acceleration');
+% plot(t, accelY, '--g', 'LineWidth', 1);
+% plot(t, accelY_1, '--b', 'LineWidth', 1);
+% plot(t, accelY_2, '--m', 'LineWidth', 1);
+% legend('Fused Acceleration', 'Board Acceleration', 'IMU 1 Acceleration', 'IMU 2 Acceleration')
 xlabel("Time [s]");
 ylabel("Acceleration in Y Direction[m/s^2]");
 title("Plot of Raw and Fused Acceleration Data vs Time");
@@ -123,11 +137,13 @@ title("Plot of Raw and Fused Acceleration Data vs Time");
 figure(3);
 clf
 hold on
-plot(t, fusedAccelX, '-r', 'LineWidth',2);
-plot(t, accelX, '-g', 'LineWidth', 2);
-plot(t, accelX_1, '-b', 'LineWidth', 2);
-plot(t, accelX_2, '-m', 'LineWidth', 2);
-legend('Fused Acceleration', 'Board Acceleration', 'IMU 1 Acceleration', 'IMU 2 Acceleration')
+plot(t, filteredAccelX, '-r', 'LineWidth',2);
+plot(t, averageX, '-g', 'LineWidth', 2);
+legend('Filtered Acceleration', 'Averaged Acceleration');
+% plot(t, accelX, '-og', 'LineWidth', 1);
+% plot(t, accelX_1, '-ob', 'LineWidth', 1);
+% plot(t, accelX_2, '-om', 'LineWidth', 1);
+% legend('Filtered Acceleration', 'Board Acceleration', 'IMU 1 Acceleration', 'IMU 2 Acceleration');
 xlabel("Time [s]");
 ylabel("Acceleration in X Direction[m/s^2]");
 title("Plot of Raw and Fused Acceleration Data vs Time");

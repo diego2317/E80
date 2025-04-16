@@ -3,7 +3,6 @@
 
 #include <Arduino.h>
 #include "SensorIMU.h"
-#include <Eigen/Dense>
 #include "OtherIMU.h"
 #include "DataSource.h"
 
