@@ -62,12 +62,12 @@ void setup() {
   logger.include(&otherIMU_2);
   logger.include(&xy_state_estimator);
   logger.include(&otherIMU_1);
+  logger.include(&adc);
   logger.include(&gps);
   logger.include(&imu);
   logger.include(&z_state_estimator);
   logger.include(&depth_control);
   logger.include(&motor_driver);
-  logger.include(&adc);
   logger.include(&ef);
   
   logger.include(&button_sampler);
@@ -108,6 +108,7 @@ void setup() {
   logger.lastExecutionTime             = loopStartTime - LOOP_PERIOD + LOGGER_LOOP_OFFSET;
   otherIMU_1.lastExecutionTime         = loopStartTime - LOOP_PERIOD + IMU_LOOP_OFFSET;
   otherIMU_2.lastExecutionTime         = loopStartTime - LOOP_PERIOD + IMU_LOOP_OFFSET;
+
 }
 
 
@@ -124,16 +125,16 @@ void loop() {
     printer.printValue(0,adc.printSample());
     //printer.printValue(1,button_sampler.printState());// modified line
     printer.printValue(1,logger.printState()); 
-    printer.printValue(2,gps.printState());   
-    printer.printValue(3,xy_state_estimator.printState());  
+    //printer.printValue(2,gps.printState());   
+    //printer.printValue(3,xy_state_estimator.printState());  
     printer.printValue(4,z_state_estimator.printState());  
-    printer.printValue(5,depth_control.printWaypointUpdate());
+    //printer.printValue(5,depth_control.printWaypointUpdate());
     printer.printValue(6,depth_control.printString());
-    printer.printValue(7, otherIMU_1.printAccels());
-    printer.printValue(8, otherIMU_2.printAccels());
+    //printer.printValue(7, otherIMU_1.printAccels());
+    //printer.printValue(8, otherIMU_2.printAccels());
     //printer.printValue(8,motor_driver.printState());
-    printer.printValue(9,imu.printRollPitchHeading());        
-    printer.printValue(10,imu.printAccels());
+    //printer.printValue(9,imu.printRollPitchHeading());        
+    //printer.printValue(10,imu.printAccels());
     //printer.printValue(11, calibrationMessage,20);
     printer.printToSerial();  // To stop printing, just comment this line out
   }
@@ -150,7 +151,7 @@ void loop() {
         depth_control.diveState = false; 
         depth_control.surfaceState = true;
       }
-      motor_driver.drive(0,0,depth_control.uV);
+      motor_driver.drive(0.5*depth_control.uV,depth_control.uV,0.5*depth_control.uV);
     }
     if ( depth_control.surfaceState ) {     // SURFACE STATE //
       if ( !depth_control.atSurface ) { 
@@ -159,7 +160,7 @@ void loop() {
       else if ( depth_control.complete ) { 
         delete[] depth_control.wayPoints;   // destroy depth waypoint array from the Heap
       }
-      motor_driver.drive(0,0,depth_control.uV);
+      motor_driver.drive(depth_control.uV,depth_control.uV,depth_control.uV);
     }
   }
   
