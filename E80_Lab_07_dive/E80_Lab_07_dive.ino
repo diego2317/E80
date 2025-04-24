@@ -12,7 +12,8 @@ Authors:
 #include <Wire.h>
 #include <avr/io.h>
 #include <avr/interrupt.h>
-
+#include <SD.h>
+#include <SPI.h>
 #include <Adafruit_LSM6DS3TRC.h>
 #include <Pinouts.h>
 #include <TimingOffsets.h>
@@ -54,24 +55,20 @@ int loopStartTime;
 int currentTime;
 volatile bool EF_States[NUM_FLAGS] = {1,1,1};
 int i;
-
+String filename = "csvlog.csv";
 ////////////////////////* Setup *////////////////////////////////
 
 void setup() {
   i = 0;
-  logger.include(&otherIMU_2);
-  logger.include(&xy_state_estimator);
-  logger.include(&otherIMU_1);
-  logger.include(&adc);
-  logger.include(&gps);
   logger.include(&imu);
+  logger.include(&gps);
+  logger.include(&xy_state_estimator);
   logger.include(&z_state_estimator);
   logger.include(&depth_control);
   logger.include(&motor_driver);
+  logger.include(&adc);
   logger.include(&ef);
-  
   logger.include(&button_sampler);
-  
   logger.init();
 
 
@@ -86,10 +83,10 @@ void setup() {
   motor_driver.init();
   led.init();
 
-  int diveDelay = 0; // how long robot will stay at depth waypoint before continuing (ms)
+  int diveDelay = 10000; // how long robot will stay at depth waypoint before continuing (ms)
 
-  const int num_depth_waypoints = 2;
-  double depth_waypoints [] = { 0.5, 1 };  // listed as z0,z1,... etc.
+  const int num_depth_waypoints = 3;
+  double depth_waypoints [] = {0.3, 0.7, 1};  // listed as z0,z1,... etc.
   depth_control.init(num_depth_waypoints, depth_waypoints, diveDelay);
   
   xy_state_estimator.init(); 
@@ -108,7 +105,18 @@ void setup() {
   logger.lastExecutionTime             = loopStartTime - LOOP_PERIOD + LOGGER_LOOP_OFFSET;
   otherIMU_1.lastExecutionTime         = loopStartTime - LOOP_PERIOD + IMU_LOOP_OFFSET;
   otherIMU_2.lastExecutionTime         = loopStartTime - LOOP_PERIOD + IMU_LOOP_OFFSET;
+  delay(45000);
+  Serial.print("Initalizing SD Card");
 
+  if (!SD.begin(10)) {
+    Serial.println("initialization failed!");
+    return;
+  }
+  Serial.println("initialization done.");
+
+  File filelog = SD.open("csvlog2.csv", FILE_WRITE);
+  filelog.println("AccelX1, AccelY1, AccelZ1, GyroX1, GyroY1, GyroZ1, AccelX2, AccelY2, AccelZ2, GyroX2, GyroY2, GyroZ2");
+  filelog.close();
 }
 
 
@@ -128,13 +136,14 @@ void loop() {
     //printer.printValue(2,gps.printState());   
     //printer.printValue(3,xy_state_estimator.printState());  
     printer.printValue(4,z_state_estimator.printState());  
-    //printer.printValue(5,depth_control.printWaypointUpdate());
+    printer.printValue(5,depth_control.printWaypointUpdate());
     printer.printValue(6,depth_control.printString());
-    //printer.printValue(7, otherIMU_1.printAccels());
-    //printer.printValue(8, otherIMU_2.printAccels());
+    printer.printValue(7, motor_driver.printState());
+    printer.printValue(8, otherIMU_1.printAccels());
+    printer.printValue(9, otherIMU_2.printAccels());
     //printer.printValue(8,motor_driver.printState());
     //printer.printValue(9,imu.printRollPitchHeading());        
-    //printer.printValue(10,imu.printAccels());
+    printer.printValue(10,imu.printAccels());
     //printer.printValue(11, calibrationMessage,20);
     printer.printToSerial();  // To stop printing, just comment this line out
   }
@@ -151,14 +160,15 @@ void loop() {
         depth_control.diveState = false; 
         depth_control.surfaceState = true;
       }
-      motor_driver.drive(0.5*depth_control.uV,depth_control.uV,0.5*depth_control.uV);
+      motor_driver.drive(0.7*depth_control.uV,depth_control.uV,0.7*depth_control.uV);
+      //motor_driver.drive(0.0,0.0,0.0);
     }
     if ( depth_control.surfaceState ) {     // SURFACE STATE //
       if ( !depth_control.atSurface ) { 
         depth_control.surface(&z_state_estimator.state);
       }
       else if ( depth_control.complete ) { 
-        delete[] depth_control.wayPoints;   // destroy depth waypoint array from the Heap
+        //delete[] depth_control.wayPoints;   // destroy depth waypoint array from the Heap
       }
       motor_driver.drive(depth_control.uV,depth_control.uV,depth_control.uV);
     }
@@ -223,6 +233,40 @@ void loop() {
   if ( currentTime- logger.lastExecutionTime > LOOP_PERIOD && logger.keepLogging ) {
     logger.lastExecutionTime = currentTime;
     logger.log();
+
+    float accelX1 = otherIMU_1.state.accelX;
+    float accelY1 = otherIMU_1.state.accelY;
+    float accelZ1 = otherIMU_1.state.accelZ;
+
+    float accelX2 = otherIMU_2.state.accelX;
+    float accelY2 = otherIMU_2.state.accelY;
+    float accelZ2 = otherIMU_2.state.accelZ;
+
+    float gyroX1 = otherIMU_1.state.gyroX;
+    float gyroY1 = otherIMU_1.state.gyroY;
+    float gyroZ1 = otherIMU_1.state.gyroZ;
+
+    float gyroX2 = otherIMU_2.state.gyroX;
+    float gyroY2 = otherIMU_2.state.gyroY;
+    float gyroZ2 = otherIMU_2.state.gyroZ;
+
+    File filelog = SD.open("csvlog2.csv", FILE_WRITE);
+    filelog.print(accelX1); filelog.print(",");
+    filelog.print(accelY1); filelog.print(",");
+    filelog.print(accelZ1); filelog.print(",");
+
+    filelog.print(gyroX1); filelog.print(",");
+    filelog.print(gyroY1); filelog.print(",");
+    filelog.print(gyroZ1); filelog.print(",");
+
+    filelog.print(accelX2); filelog.print(",");
+    filelog.print(accelY2); filelog.print(",");
+    filelog.print(accelZ2); filelog.print(",");
+
+    filelog.print(gyroX2); filelog.print(",");
+    filelog.print(gyroY2); filelog.print(",");
+    filelog.print(gyroZ2); filelog.println();
+    filelog.close();
   }
 }
 

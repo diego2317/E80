@@ -1,7 +1,7 @@
 #ifndef __DEPTHCONTROL_H__
 #define __DEPTHCONTROL_H__
 
-#define DEPTH_MARGIN 0.05 // depth margin in meters
+#define DEPTH_MARGIN 0.02 // depth margin in meters
 
 #include <Arduino.h>
 #include "MotorDriver.h"
@@ -35,7 +35,7 @@ public:
   float depth_des;   // desired depth
   float depth;       // current depth
   float depth_error; // distance to waypoint
-  float Kp=160.0;     // proportional control gain
+  float Kp=400.0;     // proportional control gain
   float uV;          // vertical motor effort
 
   bool diveState = 1;

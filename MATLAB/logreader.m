@@ -2,9 +2,9 @@
 % Use this script to read data from your micro SD card
 
 clear;
-clf;
+%clf;
 
-filenum = '072'; % file number for the data you want to read
+filenum = '019'; % file number for the data you want to read
 infofile = strcat('inf', filenum, '.txt');
 datafile = strcat('log', filenum, '.bin');
 
@@ -45,12 +45,25 @@ for i=1:numel(varTypes)
 end
 fclose(fid);
 
+%% Read IMU Data from csv
+imuDataFile = strcat('csv', 'log2', '.csv');
+tbl = readtable(imuDataFile);
+accelX_1 = tbl.AccelX1;
+accelZ_1 = tbl.AccelY1;
+accelY_1 = tbl.AccelZ1;
+accelX_2 = tbl.AccelX1;
+accelZ_2 = tbl.AccelY1;
+accelY_2 = tbl.AccelZ1;
 %% Process your data here
 pressureData = A00;
 resistorData = A01;
 
 %% Acceleration stuff
-
+% 
+n = size(accelX_1);
+accelX = accelX(1:n);
+accelY = accelY(1:n);
+accelZ = accelZ(1:n);
 averageX = (accelX + accelX_1 + accelX_2) / 3;
 averageY = (accelY + accelY_1 + accelY_2) / 3;
 averageZ = (accelZ + accelZ_1 + accelZ_2) / 3;
@@ -104,6 +117,8 @@ fusedAccelZ = fuse_with_outlier_rejection(combinedAccelZ,w,1);
 filteredAccelX = medfilt1(fusedAccelX,3);
 filteredAccelY = medfilt1(fusedAccelY,3);
 filteredAccelZ = medfilt1(fusedAccelZ,3);
+
+posZ = cumtrapz(cumtrapz(filteredAccelX));
 % 4. Analyze acceleration data. Compare raw data to fused and filtered data
 t = (0:n-1) / 10.1;  % time vector in seconds
 figure(1);
@@ -147,3 +162,10 @@ legend('Filtered Acceleration', 'Averaged Acceleration');
 xlabel("Time [s]");
 ylabel("Acceleration in X Direction[m/s^2]");
 title("Plot of Raw and Fused Acceleration Data vs Time");
+
+figure(4);
+clf;
+hold on
+plot(t, posZ, 'r', 'LineWidth',1);
+plot(t, depth, 'g', 'LineWidth',1);
+plot(t, depth_des, 'b', 'LineWidth',1);
