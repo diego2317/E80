@@ -1,0 +1,59 @@
+function nis_consistency(nis, m, alpha)
+% NIS_CONSISTENCY  χ²-consistency checks for a Kalman filter
+%
+%   nis   : vector of Normalised Innovation Squared values (N×1)
+%   m     : measurement dimension (d.o.f. of χ² PDF)
+%   alpha : confidence level, e.g. 0.95  (default 0.95)
+%
+% The script
+%   • plots NIS versus time with 95 % bounds
+%   • reports the empirical coverage ratio and its binomial CI
+%   • performs a batch χ² test (p-value)
+%   • overlays a histogram of NIS with the theoretical PDF
+
+if nargin < 3, alpha = 0.95; end
+nis  = nis(:);                           % ensure column
+K    = numel(nis);
+
+%% χ² bounds for point-wise test
+lower = chi2inv((1-alpha)/2, m);
+upper = chi2inv(1 - (1-alpha)/2, m);
+
+%% Plot time history with bounds
+figure('Name','NIS time history'); clf
+plot(nis,'b'); hold on
+yline(lower,'r--','Lower bound'); 
+yline(upper,'r--','Upper bound');
+xlabel('k'); ylabel('NIS'); grid on
+title(sprintf('NIS vs χ² bounds (α = %.0f%%, m = %d)',alpha*100,m))
+
+%% Empirical coverage
+inside = (nis >= lower) & (nis <= upper);
+K_in   = sum(inside);
+cover  = K_in/K;
+
+% 95 % binomial confidence interval
+[phat, pci] = binofit(K_in, K, 0.05);
+
+fprintf('\nPoint-wise coverage: %.3f  (expected %.2f)\n', ...
+        cover, alpha);
+fprintf('95%% CI for coverage: [%.3f , %.3f]\n', pci);
+
+%% Batch χ² test
+J      = sum(nis);
+df     = m*K;
+p_val  = 1 - chi2cdf(J, df);
+
+fprintf('Batch χ² statistic  : J = %.1f (df = %d)\n', J, df);
+fprintf('p-value             : %.3g\n', p_val);
+fprintf('# vals below lower bound: %.3f \n', numel(nis(nis<lower)));
+
+%% Histogram vs χ² PDF
+figure('Name','NIS histogram'); clf
+histogram(nis,'Normalization','pdf'); hold on
+x = linspace(0, max(nis)*1.1, 200);
+plot(x, chi2pdf(x, m), 'r', 'LineWidth',1.5);
+xlabel('Normalized Innovation Squared (NIS)'); ylabel('PDF'); grid on
+title('NIS Distribution vs Theoretical χ² Distribution (DoF = 1)');
+legend('NIS histogram','χ² PDF');
+end

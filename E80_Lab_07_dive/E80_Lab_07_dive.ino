@@ -32,6 +32,7 @@ Authors:
 #include <GPSLockLED.h>
 #include <OtherIMU.h>
 
+
 /////////////////////////* Global Variables *////////////////////////
 
 MotorDriver motor_driver;
@@ -55,7 +56,7 @@ int loopStartTime;
 int currentTime;
 volatile bool EF_States[NUM_FLAGS] = {1,1,1};
 int i;
-String filename = "csvlog.csv";
+char logfile[15];            // holds "csvlogNN.csv" (plus '\0')
 ////////////////////////* Setup *////////////////////////////////
 
 void setup() {
@@ -85,8 +86,8 @@ void setup() {
 
   int diveDelay = 10000; // how long robot will stay at depth waypoint before continuing (ms)
 
-  const int num_depth_waypoints = 3;
-  double depth_waypoints [] = {0.3, 0.7, 1};  // listed as z0,z1,... etc.
+  const int num_depth_waypoints = 4;
+  double depth_waypoints [] = {2, 1, 2, 0.5};  // listed as z0,z1,... etc.
   depth_control.init(num_depth_waypoints, depth_waypoints, diveDelay);
   
   xy_state_estimator.init(); 
@@ -105,7 +106,7 @@ void setup() {
   logger.lastExecutionTime             = loopStartTime - LOOP_PERIOD + LOGGER_LOOP_OFFSET;
   otherIMU_1.lastExecutionTime         = loopStartTime - LOOP_PERIOD + IMU_LOOP_OFFSET;
   otherIMU_2.lastExecutionTime         = loopStartTime - LOOP_PERIOD + IMU_LOOP_OFFSET;
-  delay(45000);
+  delay(150000);
   Serial.print("Initalizing SD Card");
 
   if (!SD.begin(10)) {
@@ -114,9 +115,16 @@ void setup() {
   }
   Serial.println("initialization done.");
 
-  File filelog = SD.open("csvlog2.csv", FILE_WRITE);
+  uint8_t idx = 0;
+  do {
+    sprintf(logfile, "csvlog%02d.csv", idx);   // csvlog00.csv … csvlog99.csv
+    idx++;
+  } while (SD.exists(logfile) && idx < 100);   // stop at first free slot
+
+  File filelog = SD.open(logfile, FILE_WRITE);
   filelog.println("AccelX1, AccelY1, AccelZ1, GyroX1, GyroY1, GyroZ1, AccelX2, AccelY2, AccelZ2, GyroX2, GyroY2, GyroZ2");
   filelog.close();
+  Serial.print("Logging to "); Serial.println(logfile);
 }
 
 
@@ -160,7 +168,7 @@ void loop() {
         depth_control.diveState = false; 
         depth_control.surfaceState = true;
       }
-      motor_driver.drive(0.7*depth_control.uV,depth_control.uV,0.7*depth_control.uV);
+    motor_driver.drive(0.7*depth_control.uV,depth_control.uV,0.7*depth_control.uV);
       //motor_driver.drive(0.0,0.0,0.0);
     }
     if ( depth_control.surfaceState ) {     // SURFACE STATE //
@@ -250,22 +258,22 @@ void loop() {
     float gyroY2 = otherIMU_2.state.gyroY;
     float gyroZ2 = otherIMU_2.state.gyroZ;
 
-    File filelog = SD.open("csvlog2.csv", FILE_WRITE);
-    filelog.print(accelX1); filelog.print(",");
-    filelog.print(accelY1); filelog.print(",");
-    filelog.print(accelZ1); filelog.print(",");
+    File filelog = SD.open(logfile, FILE_WRITE);
+    filelog.print(accelX1, 6); filelog.print(",");
+    filelog.print(accelY1, 6); filelog.print(",");
+    filelog.print(accelZ1, 6); filelog.print(",");
 
-    filelog.print(gyroX1); filelog.print(",");
-    filelog.print(gyroY1); filelog.print(",");
-    filelog.print(gyroZ1); filelog.print(",");
+    filelog.print(gyroX1, 6); filelog.print(",");
+    filelog.print(gyroY1, 6); filelog.print(",");
+    filelog.print(gyroZ1, 6); filelog.print(",");
 
-    filelog.print(accelX2); filelog.print(",");
-    filelog.print(accelY2); filelog.print(",");
-    filelog.print(accelZ2); filelog.print(",");
+    filelog.print(accelX2, 6); filelog.print(",");
+    filelog.print(accelY2, 6); filelog.print(",");
+    filelog.print(accelZ2, 7); filelog.print(",");
 
-    filelog.print(gyroX2); filelog.print(",");
-    filelog.print(gyroY2); filelog.print(",");
-    filelog.print(gyroZ2); filelog.println();
+    filelog.print(gyroX2, 6); filelog.print(",");
+    filelog.print(gyroY2, 6); filelog.print(",");
+    filelog.print(gyroZ2, 6); filelog.println();
     filelog.close();
   }
 }

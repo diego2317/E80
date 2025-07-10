@@ -16,44 +16,37 @@
 %    Window. These need to be copied into SensorIMU.h 
 
 clear
-%% Setup
-% number of samples [mx,my,mz] to request from Teensy
-% Max of ~4000 (Teensy doesn't have enough memory to save more)
-numSamples = 100; % 100 recommended
-% number of times matlab requests additional data from the Teensy
-numAquisitions = 50; % 50 is plenty
-% initailize vectors to hold magnetometer data
-mx = zeros(numSamples*numAquisitions,1);
-my = zeros(numSamples*numAquisitions,1);
-mz = zeros(numSamples*numAquisitions,1);
-% three four-byte floats per sample
-bytesPerSample = 12; 
-disp("Rotate Motherboard into as many orientations as possible");
 
-%% Initialize Serial Port
-% Modify first argument to match the Teensy port under Tools tab of Arduino IDE
-% same baudrate as Teensy
-s = serial('/dev/tty.usbmodem120885801','BaudRate',115200);
-set(s,'InputBufferSize',bytesPerSample*numSamples);
+numAcquisitions = 1; % 50 is plenty
 
-%% Read Data from IMU
-for aquisition = 1:numAquisitions
-    fopen(s);
-    % request data from Teensy
-    fprintf(s,'%d',numSamples);
-    dat = fread(s,3*numSamples,'float');
-    % read numSamples*3 floats from teensy (each sample includes mx, my, and mz  
-    % dat holds the magnetometer data in the form [mx1,my1,mz1,mx2,my2,mz2,...]
-    fclose(s);
-    % seperate dat into mx, my, and mz vectors
-    for sample = 0:numSamples-1
-        mx((aquisition-1)*numSamples + sample+1) = dat(3*sample+1);
-        my((aquisition-1)*numSamples + sample+1) = -dat(3*sample+2); %LSM303C doesn't use RHR :(
-        mz((aquisition-1)*numSamples + sample+1) = dat(3*sample+3);
-    end
-end
+
 
 %% Plot Raw Data
+load dpMagCal.mat
+%% logged (already “calibrated”) values
+mCal = [magX  magY  magZ];          % N×3 array read from pierRun1.mat
+
+%% 1. build the soft-iron matrix exactly as in firmware
+Msoft = [ 0.0232  -0.0016  -0.0001 ;
+          0        0.025    0.0017 ;
+          0        0        0.0248 ];
+
+%% 2. invert it
+Minv  = inv(Msoft);
+
+%% 3. firmware offsets (µT)
+bOff  = [ 8.9059  34.1319  -31.3076 ];
+
+%% 4. undo for all samples
+m_uT     = (Minv * mCal.').';       % remove soft-iron (now still offset)
+m_uT_raw = m_uT + bOff;             % add offsets back
+
+mx = m_uT_raw(:,1);
+my = m_uT_raw(:,2);
+mz = m_uT_raw(:,3);
+
+numSamples = size(mx);
+numSamples = numSamples(1);
 max_mx = max(mx); min_mx = min(mx);
 max_my = max(my); min_my = min(my);
 max_mz = max(mz); min_mz = min(mz);
@@ -70,9 +63,9 @@ hold on
 scatter3(mx,my,mz,'b.');
 ah = gca;
 title('Raw Magnetometer Data');
-xlabel('X Magnetic Flux [mGuass]');
-ylabel('Y Magnetic Flux [mGauss]');
-zlabel('Z Magnetic Flux [mGauss]');
+xlabel('X Magnetic Flux [uTesla]');
+ylabel('Y Magnetic Flux [uTesla]');
+zlabel('Z Magnetic Flux [uTesla]');
 set(ah,'FontSize',12);
 set(ah,'TitleFontSizeMultiplier',1.2);
 set(ah,'LineWidth',1);
@@ -83,7 +76,7 @@ grid on
 M = [mx,my,mz];
 [U,c] = MgnCalibration(M);
 % Calibrate data
-M_cal=(U*(M'-repmat(c,1,numSamples*numAquisitions)))';
+M_cal=(U*(M'-repmat(c,1,numSamples*numAcquisitions)))';
 mx_cal = M_cal(:,1)';
 my_cal = M_cal(:,2)';
 mz_cal = M_cal(:,3)';

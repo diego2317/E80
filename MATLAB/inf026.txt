@@ -1,0 +1,2 @@
+rollIMU,pitchIMU,headingIMU,accelX,accelY,accelZ,magX,magY,magZ
+float,float,float,float,float,float,float,float,float

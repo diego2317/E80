@@ -45,9 +45,12 @@ void SensorIMU::read(void) {
   float mz = (float)raw_mag_data[2]; 
 
   // Remove offsets from acceleration measurements
-  state.accelX = (ax - accel_offsets[0]) * 0.00980665;
-  state.accelY = (ay - accel_offsets[1]) * 0.00980665;
-  state.accelZ = (az - accel_offsets[2]) * 0.00980665;
+  // state.accelX = (ax - accel_offsets[0]) * 0.00980665;
+  // state.accelY = (ay - accel_offsets[1]) * 0.00980665;
+  // state.accelZ = (az - accel_offsets[2]) * 0.00980665;
+  state.accelX = (ax) * 0.00980665;
+  state.accelY = (ay) * 0.00980665;
+  state.accelZ = (az) * 0.00980665;
 
   // mGauss to uTesla
   mx = mx * .1;

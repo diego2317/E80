@@ -57,15 +57,15 @@ private:
   LSM303AGR myIMU;
 
   // Offsets applied to raw x/y/z accel values
-  float accel_offsets[3]      = { 1.0F, 1.0F, 1.0F };
+  float accel_offsets[3]      = { 0.0, 0.0, 0.0 };
 
   // Offsets applied to raw x/y/z mag values
-  float mag_offsets[3]        = { 1.00, 1.00, 1.00 };
+  float mag_offsets[3]        = { 8.9059, 34.1319, -31.3076 };
   
   // Soft iron error compensation matrix
-  float mag_ironcomp[3][3] =  { {  1.00,     0.00,     0.00   },
-                                {  0.00,     1.00,     0.00   },
-                                {  0.00,     0.00,     1.00   } };
+  float mag_ironcomp[3][3] =  { {  0.0232,   -0.0016,  -0.0001   },
+                                {  0.00,     0.025,     0.0017   },
+                                {  0.00,     0.00,     0.0248   } };
   
 
 };
